@@ -1,0 +1,58 @@
+;Program to sort numbers in ascending order
+;equivalent c
+;int main() {
+;unsigned short myArray[10] = {0x34,0x65,0x23,0x67,0x98,0x13,0x55,0x12,0x18,0x4};
+;for (int i=0;i<10;i++)
+;	for(int j=i+1;j<10;j++)
+;		if(myArray[i]>myArray[j])
+;			swap(&myArray[i],&myArray[j]);
+;			
+;			
+;for(int i=0;i<10;i++)
+;    printf("%0x,",myArray[i]);
+;}
+;
+;void swap(unsigned short *a,unsigned short *b){
+;    unsigned short tmp;
+;    tmp = *a;
+;    *a = *b;
+;    *b = tmp;
+;}
+
+.model	tiny
+.186
+.data
+arraySize dw 10
+myArray dw 34H,65H,23H,67H,98H,13H,55H,12H,18H,4H 
+.code
+	.startup
+        mov cx,0 ;outer loop variable
+        lea si,myArray ;si is pointing to an element in array decided by outer loop
+        outerLoop: 
+            mov dx,cx
+            inc dx ;inner loop variable
+            mov di,si 
+            innerLoop:
+                add di,2 ;di is pointing to element compared with element pointed by si. Incrementing by 2 since elements are word (2 bytes)
+                mov bx,[di]
+                cmp [si],bx
+                jc noSwap ;If [si] < [di], no need to swap. Also jb can be used
+                call swap ;else swap
+                noSwap:
+                    inc dx
+					cmp dx,arraySize
+                    jb innerLoop ;if dx < arraysize continue in innter loop
+                add si,2 ;once out of inner loop, increment si pointer. Incrementing by 2 since elements are word (2bytes)
+                inc cx  ;increment outer loop variable 
+                cmp cx,arraySize ;compare with array size
+                jb outerLoop ;if less than array size, continue in outer loop
+	.exit           ;once out of outerloop, exit the program
+	
+	;subroutine to swap memory contents pointed by si and di
+	swap:
+	    push [si]
+	    push [di]
+	    pop [si]
+	    pop [di]
+	    ret
+end

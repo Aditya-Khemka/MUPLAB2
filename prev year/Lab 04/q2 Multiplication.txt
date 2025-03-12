@@ -1,0 +1,5 @@
+MOV AL,[2000]
+MUL byte ptr [2001]
+MOV [2000],AX
+MOV AH,0
+INT 21

@@ -1,0 +1,61 @@
+;accept a string as number (dosent convert , displays as string)
+.model small
+.data
+str1 db '$$$$$$$$$$$$'  ; Buffer to store number
+newline db 0Dh, 0Ah, '$'  ; Newline characters (Carriage return + Line feed)
+.stack 10h
+
+.code
+mov ax, @data  ; Initialize data segment
+mov ds, ax     
+
+xor si, si     ; si = 0 (index counter)
+lea bx, str1   ; Load str1 address into bx
+
+readNextChar:
+mov ah, 01h    ; Read a character
+int 21h        ; Store in AL
+
+cmp si, 0      ; Check if this is the first character
+jne processdigit  ; If not first, go to digit processing
+
+; --- First Character Handling ---
+cmp al, '0'    ; If first char is '0'
+je readNextChar ; Retake input (ignore leading zero)
+
+cmp al, '-'    ; If first char is '-'
+je storeNegative 
+
+jmp processdigit  ; Directly reuse digit processing function
+
+storeNegative:
+mov [bx+si], al ; Store '-'
+inc si
+jmp readNextChar ; Continue reading input
+
+processdigit:
+cmp al, '0'     ; If character < '0', terminate
+jl doneReading
+cmp al, '9'     ; If character > '9', terminate
+jg doneReading
+
+mov [bx+si], al ; Store valid digit
+inc si
+jmp readNextChar
+
+doneReading:
+mov al, '$'    ; Append string terminator
+mov [bx+si], al 
+
+; --- Print New Line Before Displaying Output ---
+mov dx, offset newline  
+mov ah, 09h
+int 21h
+
+; --- Display the Stored Number ---
+mov dx, bx     ; Load str1 into DX
+mov ah, 09h    ; Print the stored string
+int 21h
+
+mov ah, 4Ch    ; Exit program
+int 21h

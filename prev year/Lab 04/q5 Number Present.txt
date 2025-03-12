@@ -1,0 +1,13 @@
+MOV CX,[1000]
+MOV BX,2000
+loop:
+	CMP [BX],CL
+	JE found
+	INC BX
+	DEC CH
+	JNZ loop
+MOV byte ptr [1002],00
+INT 21
+found:
+	MOV byte ptr [1002],01
+	INT 21

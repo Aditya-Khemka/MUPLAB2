@@ -1,0 +1,65 @@
+;important : accepts user input (as string) and prints it on screen
+
+.model small
+.stack 100h
+.data
+    str db 101 dup(0)  ; Buffer for storing input (100 chars max + null terminator)
+    
+    promptUser db "Enter String: $"
+    newLine db 0Dh, 0Ah, '$'  ; Newline (CR+LF)
+    
+.code
+.startup
+
+    ; --- Display Prompt ---
+    mov dx, offset promptUser
+    call printString
+
+    ; --- Read User Input ---
+    lea di, str   ; Load buffer address
+    call readInput
+
+    ; --- Print New Line ---
+    mov dx, offset newLine
+    call printString   
+
+    ; --- Print Entered String ---
+    lea dx, str  ; Load string address
+    call printString
+
+.exit
+
+; -------------------------------
+; Subroutine: Read Input String
+; -------------------------------
+readInput proc
+    mov cx, 100        ; Max input size
+    mov si, 0          ; Character counter
+    
+    readCharLoop:
+        mov ah, 01h    ; DOS: Read character (auto-echo)
+        int 21h
+
+        cmp al, 0Dh    ; Check if ENTER is pressed (ASCII 13)
+        je doneInput
+
+        mov [di], al   ; Store character in buffer
+        inc di         ; Move buffer pointer forward
+        inc si         ; Increment character count
+        loop readCharLoop  ; Repeat until CX = 0
+        
+    doneInput:
+        mov byte ptr [di], '$'  ; Properly terminate string with '$'
+        ret
+readInput endp
+
+; -------------------------------
+; Subroutine: Print String
+; -------------------------------
+printString proc
+    mov ah, 09h   ; DOS: Print string
+    int 21h
+    ret
+printString endp
+
+end

@@ -1,0 +1,141 @@
+;Q2 of lab3 (login using username and password)
+.model small
+.stack 100h
+.data
+    storedUser db "admin$", 0  ; Stored username (NULL-terminated)
+    storedPass db "secret$", 0 ; Stored password (NULL-terminated)
+
+    username db 11 dup('$')  ; Buffer for user-entered username (Max 10 + '$')
+    password db 9 dup('$')   ; Buffer for user-entered password (Max 8 + '$')
+
+    promptUser db "Enter User Name:$"
+    promptPass db 0Dh,0Ah, "Enter Password:$"
+    accessGranted db 0Dh,0Ah, "Hello, admin$"
+    accessDenied db 0Dh,0Ah, "Access Denied!$"
+    newLine db 0Dh, 0Ah, '$'  ; Newline (CR+LF)
+
+.code
+.startup
+
+    ; --- Prompt for Username ---
+    mov dx, offset promptUser
+    mov ah, 09h
+    int 21h
+
+    ; --- Read Username (Max 10 chars) ---
+    lea di, username
+    mov cx, 10   ; Max 10 characters
+    call readInput
+
+    ; --- Print New Line ---
+    mov dx, offset newLine
+    mov ah, 09h
+    int 21h
+
+    ; --- Validate Username (Compare Up to Input Length) ---
+    lea si, storedUser
+    lea di, username
+    call compareStrings
+    jc invalidUser  ; Jump if comparison failed
+
+    ; --- Prompt for Password ---
+    mov dx, offset promptPass
+    mov ah, 09h
+    int 21h
+
+    ; --- Read Password (Masked, Max 8 chars) ---
+    lea di, password
+    mov cx, 8
+    call readPassword
+
+    ; --- Validate Password (Compare Up to Input Length) ---
+    lea si, storedPass
+    lea di, password
+    call compareStrings
+    jc invalidUser  ; Jump if comparison failed
+
+    ; --- Access Granted ---
+    mov dx, offset accessGranted
+    mov ah, 09h
+    int 21h
+    jmp exit
+
+    ; --- Access Denied ---
+    invalidUser:
+    mov dx, offset accessDenied
+    mov ah, 09h
+    int 21h
+
+exit:
+.exit
+
+; ----------------------------------------
+; Subroutine: Read Username (Visible Input)
+; ----------------------------------------
+readInput proc
+    xor cx, cx      ; Reset counter
+    readCharLoop:
+        mov ah, 01h   ; DOS: Read character (echoes automatically)
+        int 21h
+
+        cmp al, 0Dh   ; If ENTER key is pressed, stop
+        je doneInput
+
+        stosb         ; Store character in buffer
+        inc cx        ; Count characters
+        cmp cx, 10    ; Limit max characters
+        jne readCharLoop  
+
+    doneInput:
+        mov al, '$'   ; Null-terminate string
+        stosb
+        ret
+readInput endp
+
+; ----------------------------------------
+; Subroutine: Read Password (Masked Input)
+; ----------------------------------------
+readPassword proc
+    xor cx, cx      ; Reset counter
+    readPassLoop:
+        mov ah, 08h   ; DOS: Read character (DOES NOT ECHO)
+        int 21h
+
+        cmp al, 0Dh   ; If ENTER key is pressed, stop
+        je donePassword
+
+        stosb         ; Store actual password character
+
+        ; Display '*' instead of actual character
+        mov ah, 02h   
+        mov dl, '*'
+        int 21h
+
+        inc cx        ; Count characters
+        cmp cx, 8     ; Limit max characters
+        jne readPassLoop
+
+    donePassword:
+        mov al, '$'   ; Null-terminate string
+        stosb
+        ret
+readPassword endp
+
+; ----------------------------------------
+; Subroutine: Compare Strings (Variable Length)
+; ----------------------------------------
+compareStrings proc
+    compareLoop:
+        lodsb         ; Load byte from stored string into AL
+        scasb         ; Compare with user input
+        jne notEqual  ; If mismatch, exit with carry flag set
+        test al, al   ; If NULL terminator reached, stop
+        jnz compareLoop
+        clc           ; Clear carry flag (strings match)
+        ret
+    notEqual:
+        stc           ; Set carry flag (strings don't match)
+        ret
+compareStrings endp
+
+end

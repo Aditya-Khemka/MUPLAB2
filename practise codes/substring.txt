@@ -1,0 +1,107 @@
+;Check if string contains substring
+; Program to check if a substring is present in a string and display its position
+
+DATA SEGMENT
+    STR DB 'AXYBCSDEF$'        ; Main string (terminated by '$')
+    SUBSTR DB 'BCS$'           ; Substring to search (terminated by '$')
+
+    LEN1 DB 0                  ; Stores length of the main string
+    LEN2 DB 0                  ; Stores length of the substring
+
+    MSG1 DB 10,13,'STRING IS : $'           ; Message to display the main string
+    MSG2 DB 10,13,'SUBSTRING IS : $'        ; Message to display the substring
+    MSG3 DB 10,13,'SUBSTRING IS FOUND AT POSITION : $'  ; Found message
+    POS DB -1                  ; Stores the position of substring (-1 if not found)
+    RTN DB '-1$'               ; Message for not found case
+
+DATA ENDS
+
+; Macro to display a string using DOS interrupt 21h
+DISPLAY MACRO MSG
+    MOV AH,9       ; DOS function to display a string
+    LEA DX,MSG     ; Load address of the string
+    INT 21H        ; Call DOS interrupt
+ENDM
+
+CODE SEGMENT
+ASSUME CS:CODE, DS:DATA
+
+START:
+    ; Initialize data segment
+    MOV AX, DATA
+    MOV DS, AX
+
+    ; Display messages and input strings
+    DISPLAY MSG1      ; Display "STRING IS : "
+    DISPLAY STR       ; Display main string
+    DISPLAY MSG2      ; Display "SUBSTRING IS : "
+    DISPLAY SUBSTR    ; Display substring
+    DISPLAY MSG3      ; Display "SUBSTRING IS FOUND AT POSITION : "
+
+    ; ----------------- FIND LENGTH OF MAIN STRING -----------------
+    LEA SI, STR       ; Load address of main string into SI
+NXT1:
+    CMP [SI], '$'     ; Check for end of string ('$' terminator)
+    JE DONE1          ; If found, jump to DONE1
+    INC LEN1          ; Increment main string length counter
+    INC SI            ; Move to the next character
+    JMP NXT1          ; Repeat until '$' is found
+DONE1:
+
+    ; ----------------- FIND LENGTH OF SUBSTRING -----------------
+    LEA DI, SUBSTR    ; Load address of substring into DI
+NXT2:
+    CMP [DI], '$'     ; Check for end of substring ('$' terminator)
+    JE DONE2          ; If found, jump to DONE2
+    INC LEN2          ; Increment substring length counter
+    INC DI            ; Move to the next character
+    JMP NXT2          ; Repeat until '$' is found
+DONE2:
+
+    ; ----------------- SEARCH FOR SUBSTRING -----------------
+    LEA SI, STR       ; Load address of main string into SI
+    MOV AL, LEN1      ; Load main string length into AL
+    SUB AL, LEN2      ; Compute number of possible starting positions
+    MOV CL, AL        ; Store the result in CL (loop counter)
+    MOV CH, 0         ; Clear CH (for loop counter)
+
+FIRST:
+    INC POS           ; Increment position tracker
+    MOV AL, [SI]      ; Load current character from main string
+    CMP AL, SUBSTR[0] ; Compare with first character of substring
+    JE CMPR           ; If match found, check the rest of substring
+
+    INC SI            ; Move SI to next character
+    LOOP FIRST        ; Repeat loop for all possible positions
+
+    ; ----------------- COMPARE REMAINING CHARACTERS -----------------
+CMPR: 
+    INC SI            ; Move SI to next character
+    MOV AL, [SI]      ; Load next character of main string
+    CMP AL, SUBSTR[1] ; Compare with second character of substring
+    JNE NOTEQUAL      ; If not equal, jump to failure case
+
+    INC SI            ; Move SI to next character
+    MOV AL, [SI]      ; Load next character of main string
+    CMP AL, SUBSTR[2] ; Compare with third character of substring
+    JE EQUAL          ; If match, substring is found
+
+    ; ----------------- SUBSTRING NOT FOUND -----------------
+NOTEQUAL:
+    MOV POS, -1       ; Store -1 to indicate substring not found
+    DISPLAY RTN       ; Print "-1"
+    JMP EXIT          ; Exit program
+
+    ; ----------------- SUBSTRING FOUND -----------------
+EQUAL:
+    MOV DL, POS       ; Load position into DL
+    ADD DL, 30H       ; Convert to ASCII (to print digit)
+    MOV AH, 2         ; DOS function to print a character
+    INT 21H           ; Print the position
+
+EXIT:
+    MOV AH, 4CH       ; DOS function to terminate program
+    INT 21H
+
+CODE ENDS
+END START

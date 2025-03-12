@@ -1,0 +1,15 @@
+; The following code stores the largest 8 bit number in AL register
+
+MOV CL,09
+MOV AL,[2000]
+MOV BX,2001
+loop:
+	CMP AL,[BX]
+	JA label
+	MOV AL,[BX]
+label:
+	INC BX
+	DEC CL
+	JNZ loop
+MOV AH,0	 ; to make sure that int 21 gets executed correctly
+INT 21

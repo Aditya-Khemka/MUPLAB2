@@ -1,0 +1,94 @@
+;input a positive number as string and convert (and display) it as integer
+.model small
+.stack 100h
+.data  
+    message db 'Enter a number:$'   ; Prompt message
+    newline db 0Dh, 0Ah, '$'        ; Newline characters
+    num dw 0                        ; Store the converted number
+
+.code
+main:
+    mov ax, @data  ; Initialize data segment
+    mov ds, ax
+
+    ; Display "Enter a number: "
+    mov dx, offset message
+    call printString   
+
+    ; Read the number from keyboard
+    call readNum  
+
+    ; Print newline
+    mov dx, offset newline
+    call printString
+
+    ; Display the number
+    mov ax, num
+    call showNum  
+
+    ; Exit program
+    mov ah, 4Ch
+    int 21h  
+
+; -------------------
+; Read Number from Keyboard
+; Stores result in `num` variable
+; -------------------
+readNum:    
+    mov bx, 0                ; BX will store the final number
+    readLoop:
+        mov ah, 01h          ; Read 1 character from keyboard
+        int 21h
+        cmp al, 0Dh          ; Check if Enter is pressed
+        je  storeNum         ; If Enter, store the number
+
+        sub al, '0'          ; Convert ASCII to integer
+        cmp al, 9            ; Ensure it's a valid digit
+        ja  readLoop         ; Ignore invalid input
+
+        mov ch, 0
+        mov cl, al           ; Store newly entered digit in CX
+        mov ax, bx           ; Copy current number to AX                  
+        mov dx, 10
+        mul dx               ; AX = AX * 10 
+        add ax, cx           ; AX = AX * 10 + CX 
+        mov bx, ax           ; Store the new number in BX
+        jmp readLoop         ; Continue reading
+    storeNum:
+        mov num, bx          ; Store final number in `num`
+        ret
+
+; -------------------
+; Print String Subroutine
+; Expects address in DX
+; -------------------
+printString:
+    mov ah, 09H     ; DOS print string
+    int 21H
+    ret
+
+; -------------------
+; Display Number Subroutine
+; Expects number in AX
+; -------------------
+showNum:
+    mov cx, 0       ; CX = digit count
+    mov bx, 10      ; Divisor
+
+    convertLoop:
+        mov dx, 0   ; Clear DX for division
+        div bx      ; AX / 10, remainder in DX
+        push dx     ; Store remainder (last digit)
+        inc cx      ; Increase digit count
+        cmp ax, 0   ; Check if AX is 0
+        jnz convertLoop 
+
+    printLoop:
+        pop dx      ; Get digit from stack
+        add dl, '0' ; Convert to ASCII
+        mov ah, 02H ; Print character
+        int 21H
+        loop printLoop
+    ret
+
+end main

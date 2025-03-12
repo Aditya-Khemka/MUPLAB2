@@ -1,0 +1,22 @@
+MOV CL,09
+outer_loop:
+	MOV CH,CL
+	MOV AX,[2000]
+	MOV BX,2002
+	inner_loop:
+		CMP AX,[BX]
+		JBE iter
+		PUSH WORD PTR [BX]
+		SUB BX,2
+		POP WORD PTR [BX]
+		ADD BX,2
+		MOV [BX],AX
+	iter:
+		MOV AX,[BX]
+		ADD BX,2
+		DEC CH
+		JNZ inner_loop:
+	DEC CL
+	JNZ outer_loop
+MOV AX,0
+INT 21

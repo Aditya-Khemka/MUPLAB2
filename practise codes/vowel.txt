@@ -1,0 +1,142 @@
+;code to input a string and display number of vowels 
+
+.model small
+.stack 100h
+.data
+    str db 101 dup(0)  ; Buffer for storing input (100 chars max + null terminator)
+    
+    vowels db 'aAeEiIoOuU', 0  ; List of vowels (null-terminated)
+    vowelCount dw 0  ; Stores the vowel count
+
+    promptUser db "Enter String: $"
+    promptVowelCount db "Vowel Count: $"  
+    newLine db 0Dh, 0Ah, '$'  ; Newline (CR+LF)
+
+.code
+.startup
+
+    ; --- Display Prompt ---
+    mov dx, offset promptUser
+    call printString
+
+    ; --- Read User Input ---
+    lea di, str   ; Load buffer address
+    call readInput
+
+    ; --- Print New Line ---
+    mov dx, offset newLine
+    call printString   
+
+    ; --- Print Entered String ---
+    lea dx, str  ; Load string address
+    call printString
+
+    ; --- Count Vowels ---
+    lea si, str  ; Load input string address
+    call countVowels
+
+    ; --- Print New Line ---
+    mov dx, offset newLine
+    call printString
+
+    ; --- Print Vowel Count Message ---
+    mov dx, offset promptVowelCount
+    call printString 
+
+    ; --- Print the Count ---
+    mov ax, vowelCount
+    call showNum
+
+.exit
+
+; ----------------------------------
+; Subroutine: Read Input String
+; ----------------------------------
+readInput proc
+    mov cx, 100        ; Max input size
+    mov si, 0          ; Character counter
+    
+    readCharLoop:
+        mov ah, 01h    ; DOS: Read character (auto-echo)
+        int 21h
+
+        cmp al, 0Dh    ; Check if ENTER is pressed (ASCII 13)
+        je doneInput
+
+        mov [di], al   ; Store character in buffer
+        inc di         ; Move buffer pointer forward
+        inc si         ; Increment character count
+        loop readCharLoop  ; Repeat until CX = 0
+        
+    doneInput:
+        mov byte ptr [di], '$'  ; Properly terminate string with '$'
+        ret
+readInput endp
+
+; ----------------------------------
+; Subroutine: Count Vowels
+; ----------------------------------
+countVowels proc
+    mov word ptr vowelCount, 0  ; Reset vowel count
+    
+    countLoop:
+        lodsb             ; Load next character into AL
+        cmp al, '$'       ; Check for end of string
+        je doneCounting   
+
+        lea di, vowels    ; Load address of vowel list
+        
+    checkVowel:
+        mov bl, [di]      ; Load a vowel from the list
+        cmp bl, 0         ; Check if end of vowel list
+        je countLoop      ; If end of vowel list, move to next char
+
+        cmp al, bl        ; Compare input char with vowel
+        je isVowel        ; If match, increment count
+        
+        inc di            ; Move to next vowel
+        jmp checkVowel    ; Continue checking
+
+    isVowel:
+        inc word ptr vowelCount  ; Increment vowel count
+        jmp countLoop   ; Continue scanning
+
+    doneCounting:
+        ret
+countVowels endp
+
+; ----------------------------------
+; Subroutine: Print String
+; ----------------------------------
+printString proc
+    mov ah, 09h   ; DOS: Print string
+    int 21h
+    ret
+printString endp
+
+; ----------------------------------
+; Subroutine: Print Number
+; ----------------------------------
+showNum proc
+    mov cx, 0       ; CX = digit count
+    mov bx, 10      ; Divisor
+
+    convertLoop:
+        mov dx, 0   ; Clear DX for division
+        div bx      ; AX / 10, remainder in DX
+        push dx     ; Store remainder (digit)
+        inc cx      ; Increase digit count
+        cmp ax, 0   ; Check if AX is zero
+        jnz convertLoop 
+
+    printLoop:
+        pop dx      ; Retrieve digit from stack
+        add dl, '0' ; Convert to ASCII
+        mov ah, 02H ; DOS print character
+        int 21H
+        dec cx
+        jnz printLoop
+    ret
+showNum endp
+
+end

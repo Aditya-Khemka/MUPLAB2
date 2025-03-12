@@ -1,0 +1,70 @@
+;check if string is plindrome 
+.MODEL SMALL
+.STACK 100H
+.DATA
+
+STRING DB 'assam', '$'             ; Input string
+STRING1 DB 10,13, 'String is palindrome', '$'  ; Message for palindrome
+STRING2 DB 10,13, 'String is not palindrome', '$'  ; Message for non-palindrome
+
+.CODE
+MAIN PROC FAR
+    MOV AX, @DATA
+    MOV DS, AX
+
+    ; Check if the string is palindrome
+    CALL Palindrome
+
+    ; Interrupt to exit
+    MOV AH, 4CH
+    INT 21H
+MAIN ENDP
+
+; ----------------------------
+; Palindrome Check Procedure
+; ----------------------------
+Palindrome PROC
+
+    ; Load the starting address of the string
+    MOV SI, OFFSET STRING
+
+    ; Traverse to the end of the string
+LOOP1:
+    MOV AL, [SI]   ; Load character
+    CMP AL, '$'    ; Check for end of string
+    JE LABEL1      ; If found, go to reverse check
+    INC SI         ; Move forward
+    JMP LOOP1
+
+LABEL1:
+    DEC SI         ; Move back to last valid character
+    MOV DI, OFFSET STRING  ; Reset DI to start of string
+
+    ; Compare characters from both ends
+LOOP2:
+    CMP SI, DI    ; If SI <= DI, checking is done
+    JLE OUTPUT1
+
+    MOV AL, [SI]  ; Load character from end
+    MOV BL, [DI]  ; Load character from start
+    CMP AL, BL    ; Compare them
+    JNE OUTPUT2   ; If mismatch, not a palindrome
+
+    DEC SI        ; Move SI left
+    INC DI        ; Move DI right
+    JMP LOOP2     ; Repeat until they meet
+
+OUTPUT1:
+    LEA DX, STRING1  ; Load palindrome message
+    MOV AH, 09H
+    INT 21H
+    RET
+
+OUTPUT2:
+    LEA DX, STRING2  ; Load non-palindrome message
+    MOV AH, 09H
+    INT 21H
+    RET
+
+Palindrome ENDP
+END MAIN

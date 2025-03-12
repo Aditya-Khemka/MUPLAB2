@@ -1,0 +1,167 @@
+;1. Your program should store first 1000 even numbers in memory using a loop
+;2. Print the following message on the screen to accept a number from the user "Enter the number to search:"
+;   You can assume the user enters a positive number that can fit using 16-bits
+;3. Write a subroutine that searches for an unsigned number in an array. If the number is found, it should return the 
+;   position number where the number is found, else should return -1. You can assume the maximum array size will be less than 65535
+;4. If the number entered by the user is present in the array of even numbers, print
+;   "Number is present at position " and the position number found using the subroutine
+;   Else print "Number not found"
+;
+;-------------------------------------------------------------------------------------------------------------------------------------
+;C equivalent
+;
+;#include <stdio.h>
+;
+;
+;//Function to check a number is present in an array
+;arguments -> pointer to array, size of array and number to search
+;returns -1 if number is not found position if found
+;
+;short checkNum(unsigned short *pntr,unsigned short size,unsigned short num){
+;    short pos=0;
+;    for(unsigned short i = 0;i< size; i++){
+;        if(*pntr == num){
+;            return pos;
+;        }
+;        pos++;
+;        pntr++;
+;    }
+;    return -1;    
+;}
+
+;//Main function
+;int main(){
+;unsigned short array[1000];
+;unsigned short *pntr;
+;unsigned short a=0;
+;unsigned short num;
+;short ret;
+;pntr = array;
+;for(int i=0;i<1000;i++){ //Generate the array
+;	*pntr = a;
+;	a += 2;
+;   pntr++;
+;}
+;printf("Enter the number to search:");
+;scanf("%d",&num);
+;ret = checkNum(array,1000,num);
+;if(ret == -1)
+;	printf("Number not found!!");
+;else
+;	printf("Number is present at position %d",ret);
+;return 0;
+;}
+
+.model tiny
+.186
+.data  
+message1 db 'Enter the number to search:$' ;Messages to display 
+message2 db 'Number is present at position:$'
+message3 db 'Number not found!!$'
+array dw 1000 dup(?)            ;Variable to store number entered by user                    
+num dw 1 dup(?)                 ;number to be searched
+.code
+.startup
+main:       
+	;store array in memory
+	mov cx,1000 ;loop variable
+	lea bx,array
+	mov ax,0
+	here:mov [bx],ax
+	add ax,2
+	add bx,2
+	loop here ;equivalent to dec cx, jnz here
+    ;display Enter num string
+    lea dx,message1  ; Load string address  
+    call printString   
+    ;read the number from keyboard
+    call readNum  
+    mov bx,num    ;function arguments for checkNum subroutine
+    lea si,array
+    call checkNum ;call the subroutine to check number present in array
+    cmp ax,-1     ;check the return value. If -1 number not found
+    jz numNotFound
+    lea dx,message2 ;else number is present  
+    push ax ;print string is going to modify ax register, so back it up
+    call printString 
+    pop ax                
+    call showNum ;function to display a number 
+	jmp exit
+    numNotFound:
+    lea dx,message3  ;Load string address
+    call printString
+exit:	
+.exit
+
+;subroutine to read a number from keyboard. There is no sanity check to confirm number can
+;be stored using 16 bits
+readNum:    
+    ;Read number from keyboard
+    mov bx, 0                ; BX will store the final number
+    readLoop:
+        mov AH, 01H               ; argument to read 1 character from keyboard
+        int 21H                   ; Read from keyboard
+        cmp AL, 13                ; Check if user pressed enter
+        je  storeNum              ; If Enter is pressed, store the number
+
+        sub al, '0'               ; else ASCII to integer
+        cmp al, 9                 ; Ensure it's a valid digit
+        ja  readLoop              ; Ignore invalid input
+
+        mov ch, 0
+        mov cl, al                ; store newly entered digit in cx
+        mov ax, bx                ; copy current number to ax                  
+        mov dx, 10
+        mul dx                    ; ax = ax*10 
+        add ax, cx                ; ax = ax*10 + cx 
+        mov bx, ax                ; store the new number in bx
+        jmp readLoop              ; continue reading
+    storeNum:
+        mov num, bx             ; Store the final number 
+        ret
+
+
+;check Num
+;assumes array starting address is in si, number to be checked is bx
+;array size is in cx
+;return value is in ax
+checkNum:
+    mov ax,0
+    compare:cmp bx,[si]
+    jz done  
+    inc ax ; increment the position var
+    add si,2 ;increment the pointer
+    loop compare ;equivalent to dec cx, jnz compare 
+    mov ax,-1
+    done:
+    ret
+
+printString:
+    mov ah, 09H     ; argument to print string
+    int 21H         ; Call interrupt 21    
+    ret
+    
+           
+;Subroutine to display a number on screen. Assumes the number to be printed is in AX register        
+showNum:
+    mov cx, 0       ; CX = digit count
+    mov bx, 10      ; Divisor
+
+    convertLoop:
+        mov dx, 0       ; Clear DX for division
+        div bx          ; AX / 10, remainder in DX
+        push dx         ; using stack here since the last digit needs to be displayed first
+        inc cx          ; Increment digit count
+        cmp ax,0        ; Check if AX is 0
+        jnz convertLoop ; Continue if not zero
+
+    printLoop:
+        pop dx         ; Get digit from stack
+        add dl, '0'    ; Convert to ASCII
+        mov ah, 02H    ; INT21 argument to print one character
+        int 21H
+        dec cx
+        jnz printLoop             ; Repeat for all digits
+    ret
+    
+end     

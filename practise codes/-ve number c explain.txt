@@ -1,0 +1,68 @@
+;mirror c program for input string and convert to -ve 
+#include <stdio.h>
+#include <stdlib.h>
+
+short num = 0;  // Stores the final converted number
+char sign = 0;  // Stores the sign (0 = positive, 1 = negative)
+
+void printString(const char *str) {
+    printf("%s", str);
+}
+
+void showNum(short ax) {
+    if (ax < 0) {
+        putchar('-');  // Print '-' sign for negative numbers
+        ax = -ax;      // Convert to positive for display
+    }
+
+    char buffer[6];  // 5 digits + null terminator
+    int i = 0;
+
+    do {
+        buffer[i++] = (ax % 10) + '0';  // Store digits in reverse order
+        ax /= 10;
+    } while (ax > 0);
+
+    while (i > 0) {
+        putchar(buffer[--i]);  // Print digits in correct order
+    }
+}
+
+void readNum() {
+    num = 0;
+    sign = 0;  // Assume positive
+    char ch;
+    
+    while (1) {
+        ch = getchar();
+
+        if (ch == '\n')  // If Enter is pressed, stop reading
+            break;
+
+        if (num == 0 && ch == '-') {  // If first char is '-', mark as negative
+            sign = 1;
+            continue;
+        }
+
+        if (ch < '0' || ch > '9')  // Ignore invalid characters
+            continue;
+
+        num = num * 10 + (ch - '0');  // Convert ASCII to number
+    }
+
+    if (sign) {
+        num = -num;  // Convert to negative if needed
+    }
+}
+
+int main() {
+    printString("Enter a number: ");
+    
+    readNum();  // Read the number from input
+    
+    printString("\n");  // Print newline
+    
+    showNum(num);  // Display the number
+
+    return 0;
+}

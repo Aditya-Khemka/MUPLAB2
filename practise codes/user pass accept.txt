@@ -1,0 +1,86 @@
+;part of login question ==> accepts username and password 
+.model small
+.stack 100h
+.data
+    username db 11 dup('$')  ; Buffer for storing username (10 chars + '$' terminator)
+    password db 9 dup('$')   ; Buffer for storing password (8 chars + '$' terminator)
+
+    promptUser db "Enter User Name:$"
+    promptPass db 0Dh,0Ah, "Enter Password:$"
+    newLine db 0Dh, 0Ah, '$'  ; Newline (CR+LF)
+
+.code
+.startup
+
+    ; --- Prompt for Username ---
+    mov dx, offset promptUser
+    mov ah, 09h
+    int 21h
+
+    ; --- Read Username (10 chars) ---
+    lea di, username
+    mov cx, 10   ; Max 10 characters
+    call readInput
+
+    ; --- Print New Line ---
+    mov dx, offset newLine
+    mov ah, 09h
+    int 21h
+
+    ; --- Prompt for Password ---
+    mov dx, offset promptPass
+    mov ah, 09h
+    int 21h
+
+    ; --- Read Password (8 chars, display ‘*’) ---
+    lea di, password
+    mov cx, 8   ; Max 8 characters
+    call readPassword
+
+.exit
+
+; ----------------------------------------
+; Subroutine to Read String Input (Username)
+; ----------------------------------------
+readInput proc
+    readCharLoop:
+        mov ah, 01h   ; DOS: Read character (echoes automatically)
+        int 21h
+
+        cmp al, 0Dh   ; If ENTER key is pressed, stop
+        je doneInput
+
+        stosb         ; Store character in buffer
+        loop readCharLoop  ; Repeat until CX = 0
+    doneInput:
+        mov al, '$'   ; Null-terminate string
+        stosb
+        ret
+readInput endp
+
+; ----------------------------------------
+; Subroutine to Read Password (Masked Input)
+; ----------------------------------------
+readPassword proc
+    readPassLoop:
+        mov ah, 08h   ; DOS: Read character (DOES NOT ECHO)
+        int 21h
+
+        cmp al, 0Dh   ; If ENTER key is pressed, stop
+        je donePassword
+
+        stosb         ; Store actual password char (not '*')
+
+        ; Display '*' instead of the actual character
+        mov ah, 02h   
+        mov dl, '*'
+        int 21h
+
+        loop readPassLoop  ; Repeat until CX = 0
+    donePassword:
+        mov al, '$'   ; Null-terminate string
+        stosb
+        ret
+readPassword endp
+
+end

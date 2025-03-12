@@ -1,0 +1,130 @@
+;8086 inherently does not support numbers with fractional part. 
+;You need to write a program, which accepts 2 unsigned numbers with fractional parts from user adds them
+;displays the result. An exaple case when your program executes is given below (all numbers are in decimal)
+;
+;Enter number
+;13.54
+;Enter number
+;12.85
+;Sum is:26.39
+;
+;You can make the follwing assumptions
+;1. The integer portion of the number can fit using 16-bits
+;2. The fractional parts will be always specified using 2 digits
+;
+;Hint: Why not store integer and fractional parts in separate variables and add them?
+
+
+.model tiny
+.186
+.data  
+message1 db 'Enter the number:$' ;Message to display 
+message2 db 'Sum is:$'
+num1Int dw 1 dup(?)             ;Variable to store integer part of number1
+num1Frac db 1 dup(?)            ;Variable to store frac part of number1      
+num2Int dw 1 dup(?)             ;Variable to store integer part of number2
+num2Frac db 1 dup(?)            ;Variable to store frac part of number2               
+num3Int dw 1 dup(?)             ;Variable to store integer part of number2
+num3Frac db 1 dup(?)            ;Variable to store frac part of number2
+.code
+.startup
+main:
+    lea dx,message1  ; Load string address
+    mov ah, 09H      ; argument to print string
+    int 21H          ; Call interrupt 21  
+    call readNum     ; Storing first number integer part
+    mov num1Int,bx
+    call readNum    ; Storing first number frac part
+    mov num1Frac,bl
+    lea dx,message1  ; Load string address
+    mov ah, 09H      ; argument to print string
+    int 21H          ; Call interrupt 21  
+    call readNum     ; Storing second number integer part
+    mov num2Int,bx
+    call readNum     ; Storing second number frac part
+    mov num2Frac,bl                        
+    
+    mov al,num1Frac  ;add the fractional parts
+    add al,num2Frac
+    cmp al,99        ;If the sum is greater than 99, need to add 1 to integer part
+    jbe noAdd         ;else no need to add
+    sub al,100       ;If greater than 99, need to subtract 100 frac and add 1 to integer
+    stc              ;set the carry flag so that this can be added with integer part
+    noAdd:
+    mov num3Frac,al
+    mov ax,num1Int
+    adc ax,num2Int   ;add the integer parts with carry from frac part. Prev mov instructions won't affect CY flag
+    mov num3Int,ax
+             
+    lea dx,message2  ; Load string address
+    mov ah, 09H      ; argument to print string
+    int 21H          ; Call interrupt 21
+    
+    mov ax,num3Int         
+    call showNum     ;print integer part of sum
+    
+    mov  dl,'.'      ;print .
+    mov  ah,02h
+    int 21h
+    
+    mov ah,0
+    mov al,num3Frac  ;print fractional part. Make sure ah is set to 0.
+    call showNum
+.exit
+
+
+;subroutine to read a number from keyboard. Reads the integer part. When user enters "." exits
+;from subroutine. return value in bx
+readNum:    
+    ;Read number from keyboard
+    mov bx, 0                     ; BX will store the final number
+    readLoop:
+        mov AH, 01H               ; argument to read 1 character from keyboard
+        int 21H                   ; Read from keyboard
+        cmp AL, '.'               ; Check if user pressed .
+        je  return                ; If . is pressed, store the number  
+        cmp al, 13                ; Check if enter is pressed
+        je return                 ; If enter is pressed, store the number
+
+        sub al, '0'               ; else ASCII to integer
+        cmp al, 9                 ; Ensure it's a valid digit
+        ja  readLoop              ; Ignore invalid input
+
+       
+        mov ch, 0
+        mov cl, al                ; store newly entered digit in cx
+        mov ax, bx                ; copy current number to ax                  
+        mov dx, 10
+        mul dx                    ; ax = ax*10 
+        add ax, cx                ; ax = ax*10 + cx 
+        mov bx, ax                ; store the new number in bx
+        jmp readLoop              ; continue reading
+    return: 
+        ret
+
+
+;Subroutine to display a number on screen. Assumes the number to be printed is in AX register        
+showNum:
+    mov cx, 0       ; CX = digit count
+    mov bx, 10      ; Divisor
+
+convertLoop:
+    mov dx, 0       ; Clear DX for division
+    div bx          ; AX / 10, remainder in DX
+    push dx         ; using stack here since the last digit needs to be displayed first
+    inc cx          ; Increment digit count
+    cmp ax,0        ; Check if AX is 0
+    jnz convertLoop ; Continue if not zero
+
+printLoop:
+    pop dx         ; Get digit from stack
+    add dl, '0'    ; Convert to ASCII
+    mov ah, 02H    ; INT21 argument to print one character
+    int 21H
+    dec cx
+    jnz printLoop             ; Repeat for all digits
+    ret
+
+
+
+end

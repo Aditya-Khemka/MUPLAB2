@@ -1,0 +1,97 @@
+;TO COUNT THE NUMBER OF WORDS PRESENTED IN THE ENTERED SENTENCE.
+
+.MODEL SMALL
+.STACK 64
+.DATA
+MAXLEN Db 100             ; Maximum input length (100 characters)
+ACTCHAR Db ?              ; Stores the actual number of characters entered by the user
+STR DB 101 DUP('$')       ; Buffer to store user input (101 bytes)
+STR1 DB "NO. OF WORDS IS ",'$'  ; Message to display before printing word count
+
+.CODE
+MAIN PROC FAR
+    ; Initialize Data Segment
+    MOV AX, @DATA
+    MOV DS, AX
+
+    ; Initialize Counters
+    MOV CX, 00      ; CX will count the number of characters left to process
+    MOV BX, 00      ; BX will be used as an index in the string
+    MOV AX, 00      ; AX is cleared
+
+    ; Take User Input
+    LEA DX, MAXLEN  ; Load the address of MAXLEN into DX
+    MOV AH, 0AH     ; DOS function to accept a buffered string input
+    INT 21H         ; Call DOS interrupt to get input
+
+    ; Setup Counters
+    MOV CH, 00H     ; Clear high byte of CX
+    MOV CL, ACTCHAR ; Load the actual entered character count into CX
+    MOV DX, 0100H   ; DX will store the word count (DL=word count, DH=partial count)
+    
+    ; Check if the first character is a space
+    CMP STR [0], ' '  ; If the string starts with a space
+    JNZ L1            ; If not a space, skip adjustment
+    SUB DH, 01        ; Otherwise, adjust DH (reduce word count)
+
+L1: 
+    CMP STR [BX], ' ' ; Check if the current character is a space
+    JNZ L3            ; If not a space, jump to L3 (continue checking next character)
+
+L2: 
+    INC BX            ; Move to the next character
+    DEC CX            ; Decrease character count
+    CMP STR [BX], ' ' ; Check if the next character is also a space
+    JZ L2             ; If it is, keep skipping spaces
+
+    INC DH            ; Increase word count since a space means the start of a new word
+    CMP DH, 0AH       ; Check if the word count exceeds 10
+    JB L3             ; If below 10, continue
+    MOV DH, 00        ; If 10 or more, reset DH
+    INC DL            ; Increase high part of the word count
+
+L3: 
+    INC BX            ; Move to the next character
+    LOOP L1           ; Loop until CX reaches zero (end of input)
+
+    ; Final Adjustment: Check if the last character was a space
+    CMP STR [BX-1], ' ' ; If the last character is a space, reduce word count
+    JNZ L4             ; If not, skip adjustment
+    SUB DH, 01         ; Reduce the word count
+    JNC L4             ; If no carry (valid adjustment), continue
+    SUB DL, 01         ; Adjust high byte if needed
+    ADD DH, 0AH        ; Adjust for decimal representation
+
+L4: 
+    MOV BX, DX         ; Store final word count in BX
+
+    ; Print New Line
+    MOV AH, 02H
+    MOV DL, 0AH        ; ASCII for newline
+    INT 21H
+    MOV DL, 0DH        ; ASCII for carriage return
+    INT 21H
+
+    ; Print "NO. OF WORDS IS "
+    LEA DX, STR1
+    MOV AH, 09H
+    INT 21H
+
+    ; Print Word Count (First Digit)
+    MOV DX, BX         ; Load word count from BX into DX
+    ADD DL, 30H        ; Convert to ASCII
+    MOV AH, 02H        ; DOS function to print character
+    INT 21H            ; Print first digit
+
+    ; Print Word Count (Second Digit)
+    ADD DH, 30H        ; Convert second digit to ASCII
+    MOV DL, DH         ; Move second digit to DL for printing
+    MOV AH, 02H
+    INT 21H
+
+    ; Exit Program
+    MOV AX, 4C00H
+    INT 21H
+
+MAIN ENDP
+END MAIN

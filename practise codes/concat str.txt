@@ -1,0 +1,89 @@
+; Concatenation two strings in 8086 ALP
+
+.model small
+.stack 100h
+.data
+
+empty db 10,13, "   $"
+str1 db 25, ?, 25 dup('$')
+str2 db 25, ?, 25 dup('$')
+
+mstring db 10,13, "Enter the first string: $"
+mstring2 db 10,13, "Enter the second string: $"
+mconcat db 10,13, "Concatenated string: $"
+
+.code
+
+start:
+    mov ax, @data   ; Initialize data segment
+    mov ds, ax
+
+    mov dx, offset mstring
+    call printString      ; Call procedure to print first message
+    call accept_string    ; Call procedure to accept first string
+	   
+    ; Storing second string in str2
+    mov dx, offset mstring2
+    call printString      ; Call procedure to print second message
+
+    mov ah, 0ah           ; DOS function to take buffered input
+    lea dx, str2          ; Load address of str2
+    int 21h               ; Call interrupt to accept input
+
+    ; Finding the end of str1
+    mov cl, str1+1        ; Load the length of str1 into CL
+    mov si, offset str1   ; SI points to start of str1 buffer
+
+next:  
+    inc si                ; Move SI to the next character
+    dec cl                ; Decrement length counter
+    jnz next              ; Repeat until end of first string
+    inc si                ; Move past buffer control bytes
+
+    ; Moving to start of str2
+    inc si
+    mov di, offset str2   ; Load address of str2 into DI
+    inc di                ; Skip metadata bytes in str2
+    inc di  
+
+    ; Copying str2 to the end of str1
+    mov cl, str2+1        ; Load length of str2 in CL
+
+move_next:
+    mov al, [di]          ; Load character from str2
+    mov [si], al          ; Store it at end of str1
+    inc si                ; Move SI to next position
+    inc di                ; Move DI to next character in str2
+    dec cl                ; Decrement character count
+    jnz move_next         ; Continue until all characters copied
+		   
+    mov dx, offset mconcat
+    call printString      ; Call procedure to print concatenated message
+
+    lea dx, str1+2        ; Load string without metadata
+    call printString      ; Call procedure to print concatenated string
+
+exit:
+    mov ah, 4Ch           ; Exit the program
+    int 21h
+
+;--------------------------------------------------------
+; Procedure to Accept String
+;--------------------------------------------------------
+accept_string proc near
+    mov ah, 0Ah           ; DOS function to accept string input
+    mov dx, offset str1   ; Store string in memory at DX
+    int 21h
+    ret
+accept_string endp
+
+;--------------------------------------------------------
+; Procedure to Print a String
+;--------------------------------------------------------
+printString proc near
+    mov ah, 09h           ; DOS function to print string
+    int 21h               ; Call interrupt to print
+    ret
+printString endp
+
+end start

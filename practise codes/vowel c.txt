@@ -1,0 +1,63 @@
+#c code to input string and print number of vowels 
+
+#include <stdio.h>
+#include <conio.h>   // For getch()
+
+#define MAX_LEN 100
+
+// Function to read user input
+void readInput(char str[]) {
+    int i = 0;
+    char ch;
+    
+    printf("Enter String: ");
+    
+    while (i < MAX_LEN - 1) {
+        ch = getch();  // Read character without Enter required
+        if (ch == '\r')  // Stop if Enter is pressed
+            break;
+
+        printf("%c", ch);  // Echo the character
+        str[i++] = ch;
+    }
+    
+    str[i] = '\0';  // Null-terminate the string
+}
+
+// Function to count vowels
+int countVowels(char str[]) {
+    char vowels[] = "aAeEiIoOuU";
+    int count = 0;
+
+    for (int i = 0; str[i] != '\0'; i++) {
+        for (int j = 0; vowels[j] != '\0'; j++) {
+            if (str[i] == vowels[j]) {
+                count++;
+                break;  // Move to next character once matched
+            }
+        }
+    }
+    
+    return count;
+}
+
+// Function to print number
+void printNumber(int num) {
+    printf("%d", num);
+}
+
+int main() {
+    char str[MAX_LEN];  // Buffer for user input
+    int vowelCount;
+
+    readInput(str);  // Read input from user
+    
+    printf("\n%s\n", str);  // Print entered string
+
+    vowelCount = countVowels(str);  // Count vowels
+    
+    printf("Vowel Count: ");
+    printNumber(vowelCount);  // Print the count
+
+    return 0;
+}
